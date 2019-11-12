@@ -124,7 +124,7 @@ class Wrapper:
     async def _process_chunk(self, chunk: List[Message], layer_id: int) -> None:
         ids_batch = [msg.chat_id for msg in chunk]
         utts_batch = [msg.payload for msg in chunk]
-        data = {self._config["model_args_names"][0]: utts_batch}
+        data = {'x': utts_batch, 'user_ids': ids_batch}
         if self._config['send_state']:
             data[self._config["model_args_names"][1]] = [self._states.get(chat_id) for chat_id in ids_batch]
         try:
@@ -148,7 +148,7 @@ class Wrapper:
     @staticmethod
     def _process_payload(payload: Dict) -> Optional[str]:
         if payload.get('command', None) is not None:
-            message = None
+            message = 'start' if payload.get('command', None) == 'start' else None
         else:
             message = payload['text']
         return message
@@ -169,8 +169,9 @@ class Wrapper:
         if self._config['send_state'] is False:
             await self._chat_events[chat_id][layer_id - 1].wait()
 
-        async with aiohttp.ClientSession() as session:
-            await session.post(self._config['send_message_url'], json=payload)
+        if 'Hello, welcome to the Cambridge restaurant system' not in resp_text:
+            async with aiohttp.ClientSession() as session:
+                await session.post(self._config['send_message_url'], json=payload)
 
         if self._config['send_state'] is False:
             self._chat_events[chat_id][layer_id].set()
